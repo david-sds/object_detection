@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pytorch/flutter_pytorch.dart';
 import 'package:object_detection/camera.dart';
-import 'package:object_detection/video.dart';
+import 'package:object_detection/video/video.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
