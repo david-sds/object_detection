@@ -14,10 +14,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  File? _imageFile;
-  late ModelObjectDetection _objectModel;
+  ModelObjectDetection? _objectModel;
   String? _imagePrediction;
-  List? _prediction;
   File? _image;
   final ImagePicker _picker = ImagePicker();
   bool objectDetection = false;
@@ -25,21 +23,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     loadModel();
   }
 
-  Future loadModel() async {
+  Future<void> loadModel() async {
     String pathObjectDetectionModel = "assets/models/yolov5s.torchscript";
     try {
-      _objectModel = await FlutterPytorch.loadObjectDetectionModel(
-          //Remeber here 80 value represents number of classes for custom model it will be different don't forget to change this.
-          pathObjectDetectionModel,
-          80,
-          640,
-          640,
-          labelPath: "assets/labels/labels.txt");
+      final result = await FlutterPytorch.loadObjectDetectionModel(
+        pathObjectDetectionModel,
+        labelPath: "assets/labels/labels.txt",
+        80,
+        640,
+        640,
+      );
+      setState(() {
+        _objectModel = result;
+      });
     } catch (e) {
       if (e is PlatformException) {
         print("only supported for android, Error is $e");
@@ -49,15 +49,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future runObjectDetection() async {
+  Future<void> runObjectDetection() async {
     //pick an image
 
     final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery, maxWidth: 200, maxHeight: 200);
-    objDetect = await _objectModel.getImagePrediction(
-        await File(image!.path).readAsBytes(),
-        minimumScore: 0.1,
-        IOUThershold: 0.3);
+      source: ImageSource.gallery,
+    );
+    if (image == null) {
+      return;
+    }
+    final objDetectRes = await _objectModel?.getImagePrediction(
+      await File(image.path).readAsBytes(),
+      minimumScore: 0.1,
+      IOUThershold: 0.3,
+    );
+
     for (var element in objDetect) {
       print({
         "score": element?.score,
@@ -73,49 +79,84 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       });
     }
+    print('setting image!');
     setState(() {
       _image = File(image.path);
+      objDetect = objDetectRes ?? [];
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    print('rendering again!');
+    final img = _image;
     return Scaffold(
       appBar: AppBar(title: const Text("OBJECT DETECTOR APP")),
       backgroundColor: Colors.white,
       body: Center(
+        child: Container(
+          color: Colors.amber,
           child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          //Image with Detections....
-          Expanded(
-            child: SizedBox(
-              height: 150,
-              width: 300,
-              child: objDetect.isNotEmpty
-                  ? _image == null
-                      ? const Text('No image selected.')
-                      : _objectModel.renderBoxesOnImage(_image!, objDetect)
-                  : _image == null
-                      ? const Text('No image selected.')
-                      : Image.file(_image!),
-            ),
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Container(
+                    color: Colors.blue,
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 640,
+                          width: 640,
+                          child: objDetect.isNotEmpty
+                              ? img == null
+                                  ? const Text('No image selected 1.')
+                                  : _objectModel?.renderBoxesOnImage(
+                                      img, objDetect)
+                              : img == null
+                                  ? const Text('No image selected 2.')
+                                  : Image.file(img),
+                        ),
+                        Center(
+                          child: Text(_imagePrediction ?? 'Nothing found'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Column(
+              //   children: [
+              //     SizedBox(
+              //       height: 400,
+              //       width: 400,
+              //       child: objDetect.isNotEmpty
+              //           ? img == null
+              //               ? const Text('No image selected 1.')
+              //               : _objectModel?.renderBoxesOnImage(img, objDetect)
+              //           : img == null
+              //               ? const Text('No image selected 2.')
+              //               : Image.file(img),
+              //     ),
+              //     Center(
+              //       child: Visibility(
+              //         visible: _imagePrediction != null,
+              //         child: Text("$_imagePrediction"),
+              //       ),
+              //     ),
+              //   ],
+              // ),
+              // //Button to click pic
+              ElevatedButton(
+                onPressed: () {
+                  runObjectDetection();
+                },
+                child: const Icon(Icons.camera),
+              )
+            ],
           ),
-          Center(
-            child: Visibility(
-              visible: _imagePrediction != null,
-              child: Text("$_imagePrediction"),
-            ),
-          ),
-          //Button to click pic
-          ElevatedButton(
-            onPressed: () {
-              runObjectDetection();
-            },
-            child: const Icon(Icons.camera),
-          )
-        ],
-      )),
+        ),
+      ),
     );
   }
 }
