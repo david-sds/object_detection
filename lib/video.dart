@@ -154,19 +154,33 @@ class _VideoState extends State<Video> {
       return;
     }
     final objDetectRes = await widget.model?.getImagePrediction(
-      convertedImg,
-      minimumScore: 0.1,
-      IOUThershold: 0.3,
-    );
-    if (objDetectRes == null) {
-      print('Fail todetect objects');
-      return;
-    }
-    print('painting objects!');
+          convertedImg,
+          minimumScore: 0.1,
+          IOUThershold: 0.3,
+        ) ??
+        [];
+    // for (var e in objDetectRes) {
+    //   print({
+    //     "score": e?.score,
+    //     "className": e?.className,
+    //     "class": e?.classIndex,
+    //     "rect": {
+    //       "left": e?.rect.left,
+    //       "top": e?.rect.top,
+    //       "width": e?.rect.width,
+    //       "height": e?.rect.height,
+    //       "right": e?.rect.right,
+    //       "bottom": e?.rect.bottom,
+    //     },
+    //   });
+    // }
+    print('painting objects => ${objDetectRes.length}');
+
     widget.model?.renderBoxesOnImage(
       imgAsFile,
       objDetectRes,
     );
+    setState(() {});
     print('objects painted!');
   }
 

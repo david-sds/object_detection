@@ -15,7 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ModelObjectDetection? _objectModel;
   @override
   void initState() {
-    // TODO: implement initState
+    loadModel();
     super.initState();
   }
 
