@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pytorch/flutter_pytorch.dart';
+import 'package:flutter_pytorch/pigeon.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -24,6 +25,8 @@ class Video extends StatefulWidget {
 class _VideoState extends State<Video> {
   CameraController? _controller;
   bool _isStreaming = false;
+  File? currentFrame;
+  List<ResultObjectDetection?> frameDetection = [];
 
   @override
   void initState() {
@@ -159,35 +162,22 @@ class _VideoState extends State<Video> {
           IOUThershold: 0.3,
         ) ??
         [];
-    // for (var e in objDetectRes) {
-    //   print({
-    //     "score": e?.score,
-    //     "className": e?.className,
-    //     "class": e?.classIndex,
-    //     "rect": {
-    //       "left": e?.rect.left,
-    //       "top": e?.rect.top,
-    //       "width": e?.rect.width,
-    //       "height": e?.rect.height,
-    //       "right": e?.rect.right,
-    //       "bottom": e?.rect.bottom,
-    //     },
-    //   });
-    // }
-    print('painting objects => ${objDetectRes.length}');
-
-    widget.model?.renderBoxesOnImage(
-      imgAsFile,
-      objDetectRes,
-    );
-    setState(() {});
-    print('objects painted!');
+    setState(() {
+      currentFrame = imgAsFile;
+      frameDetection = objDetectRes;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final camCtrl = _controller;
-    print('cam ctrl exist => $camCtrl');
+    final cFrame = currentFrame;
+    final frameWidget = cFrame != null
+        ? widget.model?.renderBoxesOnImage(
+            cFrame,
+            frameDetection,
+          )
+        : const SizedBox();
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -195,20 +185,34 @@ class _VideoState extends State<Video> {
           child: Container(
             color: Colors.amber,
             child: camCtrl == null
-                ? const Text('Camera error')
+                ? const Text('Play to detect object.')
                 : CameraPreview(camCtrl),
           ),
         ),
-        Row(
+        Column(
           children: [
-            ElevatedButton(
-              onPressed: _startStreaming,
-              child: const Icon(Icons.play_arrow),
+            Container(
+              color: Colors.purple,
+              child: camCtrl == null
+                  ? const Text('Play to detect object.')
+                  : SizedBox(
+                      width: 240,
+                      height: 240,
+                      child: frameWidget,
+                    ),
             ),
-            ElevatedButton(
-              onPressed: _stopStreaming,
-              child: const Icon(Icons.stop_circle),
-            )
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: _startStreaming,
+                  child: const Icon(Icons.play_arrow),
+                ),
+                ElevatedButton(
+                  onPressed: _stopStreaming,
+                  child: const Icon(Icons.stop_circle),
+                )
+              ],
+            ),
           ],
         ),
       ],
