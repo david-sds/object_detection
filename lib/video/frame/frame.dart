@@ -70,30 +70,10 @@ class _FrameState extends State<Frame> {
       return null;
     }
   }
-/* 
-  void function() {
-
-      if (widget.ctrl.convertedImage != null) {
-        final imgAsFile = await _saveUint8ListToFile(convertedImage);
-        if (imgAsFile == null) {
-          print('Fail to convert byte arra to file');
-          return;
-        }
-        final objDetectRes = await widget.model?.getImagePrediction(
-              convertedImg,
-              minimumScore: 0.1,
-              IOUThershold: 0.3,
-            ) ??
-            [];
-        setState(() {
-          currentFrame = imgAsFile;
-          frameDetection = objDetectRes;
-        });
-      }
-  } */
 
   @override
   Widget build(BuildContext context) {
+    print('frame');
     final cFrame = currentFrame;
     final frameWidget = cFrame != null
         ? widget.model?.renderBoxesOnImage(

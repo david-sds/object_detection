@@ -21,6 +21,7 @@ class _CameraState extends State<Camera> {
   final ImagePicker _picker = ImagePicker();
   bool objectDetection = false;
   List<ResultObjectDetection?> objDetect = [];
+  Duration? duration;
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _CameraState extends State<Camera> {
     if (image == null) {
       return;
     }
+    final start = DateTime.now();
     final objDetectRes = await widget.model?.getImagePrediction(
       await File(image.path).readAsBytes(),
       minimumScore: 0.1,
@@ -55,9 +57,11 @@ class _CameraState extends State<Camera> {
         },
       });
     }
+    final end = DateTime.now();
     setState(() {
       _image = File(image.path);
       objDetect = objDetectRes ?? [];
+      duration = end.difference(start);
     });
   }
 
@@ -65,47 +69,79 @@ class _CameraState extends State<Camera> {
   Widget build(BuildContext context) {
     final img = _image;
     return Center(
-      child: Container(
-        color: Colors.amber,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Container(
-                  color: Colors.blue,
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 640,
-                        width: 640,
-                        child: objDetect.isNotEmpty
-                            ? img == null
-                                ? const Text('No image selected 1.')
-                                : widget.model?.renderBoxesOnImage(
-                                    img,
-                                    objDetect,
-                                  )
-                            : img == null
-                                ? const Text('No image selected 2.')
-                                : Image.file(img),
-                      ),
-                      Center(
-                        child: Text(_imagePrediction ?? 'Nothing found'),
-                      ),
-                    ],
+      child: Stack(
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Container(
+                    color: Colors.blue,
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 640,
+                          width: 640,
+                          child: objDetect.isNotEmpty
+                              ? img == null
+                                  ? const Text('No image selected 1.')
+                                  : widget.model?.renderBoxesOnImage(
+                                      img,
+                                      objDetect,
+                                    )
+                              : img == null
+                                  ? const Text('No image selected 2.')
+                                  : Image.file(img),
+                        ),
+                        Center(
+                          child: Text(_imagePrediction ?? 'Nothing found'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                runObjectDetection();
-              },
-              child: const Icon(Icons.camera),
-            )
-          ],
-        ),
+              ElevatedButton(
+                onPressed: () {
+                  runObjectDetection();
+                },
+                child: const Icon(Icons.camera),
+              )
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                color: Colors.black.withOpacity(.4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (duration != null)
+                      Text(
+                        'Elapsed time: ${duration?.inMilliseconds}ms',
+                        style: const TextStyle(
+                          color: Colors.white,
+                        ),
+                      ),
+                    ...List.generate(objDetect.length, (index) {
+                      final obj = objDetect[index];
+                      return Text(
+                        '${obj?.classIndex} ${obj?.className} (${obj?.score.toStringAsFixed(3)})',
+                        style: const TextStyle(
+                          color: Colors.white,
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
